@@ -11,20 +11,17 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace SimpleWebCopy
 {
     public class Crawler : IDisposable
     {
-
         private HttpClient httpClient;
         private CookieContainer cookieContainer;
         private HttpClientHandler httpClientHandler;
 
         private ConcurrentQueue<string> queue;
-
-
-        //private TaskCompletionSource<bool> tcs;
 
         private Regex regexCssUrls = new Regex("url\\(['\"]?(.*?)['\"]?\\)", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
@@ -32,9 +29,9 @@ namespace SimpleWebCopy
 
         public SiteItemState State { get; }
 
-        //public ConcurrentDictionary<string, string> Threads { get; }
+        public event EventHandler<ThreadUpdatedEventArgs> ThreadUpdated;
 
-        public event EventHandler<ThreadUpdatedEventArgs> CrawlUpdated;
+        public event EventHandler<ThreadCompleteEventArgs> ThreadComplete;
 
         public Crawler(string site)
         {
@@ -48,8 +45,6 @@ namespace SimpleWebCopy
             cookieContainer = new CookieContainer();
             httpClientHandler = new HttpClientHandler { CookieContainer = cookieContainer, AllowAutoRedirect = true };
             httpClient = new HttpClient(httpClientHandler);
-
-            //Threads = new ConcurrentDictionary<string, string>();
         }
 
         private void State_ItemAdded(object sender, Events.ItemAddedEventArgs e)
@@ -71,36 +66,9 @@ namespace SimpleWebCopy
             await Task.WhenAll(tasks);
         }
 
-        //public Task StartThreads()
-        //{
-        //    //if (!State.NeedsScanning())
-        //    //{
-        //    //    tcs.SetResult(true);
-        //    //    return Task.CompletedTask;
-        //    //}
-
-        //    for (int i = 0; i < 5; i++)
-        //    {
-        //        //if (queue.TryDequeue(out string itemUrl))
-        //        //{
-        //        //    if (Threads.TryAdd(itemUrl, "Starting"))
-        //        //    {
-        //                //CrawlUpdated.Trigger(this, new EventArgs());
-        //                Crawl(i + 1);
-        //            //}
-        //        //}
-        //    }
-
-        //    return Task.CompletedTask;
-        //    //return Task.Delay(1000).ContinueWith(previousTask => StartThreads());
-        //}
-
         private void UpdateThread(int threadId, string itemUrl, string state)
         {
-            //if(Threads.TryUpdate(itemUrl, state, null))
-            //{
-                CrawlUpdated.Trigger(this, new ThreadUpdatedEventArgs(threadId, itemUrl, state));
-            //}
+            ThreadUpdated.Trigger(this, new ThreadUpdatedEventArgs(threadId, itemUrl, state));
         }
 
         public async Task Crawl(int threadId)
@@ -143,9 +111,13 @@ namespace SimpleWebCopy
                                         {
                                             string contentType = response.Content.Headers.ContentType.MediaType;
                                             if (contentType == "text/html")
+                                            {
                                                 html = await response.Content.ReadAsStringAsync();
+                                            }
                                             else if (contentType.StartsWith("text/"))
+                                            {
                                                 content = await response.Content.ReadAsStringAsync();
+                                            }
                                             else
                                             {
                                                 string filePath = null;
@@ -184,7 +156,6 @@ namespace SimpleWebCopy
                             {
                                 try
                                 {
-
                                     UpdateThread(threadId, itemUrl, "Parsing");
                                     document = new HtmlDocument();
                                     document.LoadHtml(html);
@@ -224,7 +195,7 @@ namespace SimpleWebCopy
                                     UpdateThread(threadId, itemUrl, "Parsing");
                                     content = regexCssUrls.Replace(content, new MatchEvaluator(m =>
                                         {
-                                            string url = m.Groups[1].Value;
+                                            string url = HttpUtility.HtmlDecode(m.Groups[1].Value).Replace("'", "");
                                             if (!string.IsNullOrWhiteSpace(url))
                                             {
                                                 string fullUrl = State.AddLink(url);
@@ -269,11 +240,10 @@ namespace SimpleWebCopy
                 }
 
                 if (!State.NeedsScanning() && queue.IsEmpty)
+                {
+                    ThreadComplete.Trigger(this, new ThreadCompleteEventArgs(threadId));
                     break;
-
-                //UpdateThread(threadId, null, "Paused");
-                //Thread.Sleep(1000);
-
+                }
             }
         }
 
@@ -289,10 +259,7 @@ namespace SimpleWebCopy
                 httpClient?.Dispose();
                 httpClientHandler?.Dispose();
             }
-            catch
-            {
-
-            }
+            catch { }
         }
 
         private void FindAndReplaceURLs(HtmlDocument document, string itemLocalUrl, string element, string attribute)

@@ -14,7 +14,8 @@ namespace SimpleWebCopy
 
             crawler = new Crawler(args[0]);
             crawler.State.ItemAdded += State_ItemAdded;
-            crawler.CrawlUpdated += Crawler_CrawlUpdated;
+            crawler.ThreadUpdated += Crawler_ThreadUpdated;
+            crawler.ThreadComplete += Crawler_ThreadComplete;
 
             PreRender(5);
 
@@ -22,6 +23,7 @@ namespace SimpleWebCopy
 
             Console.ReadLine();
 
+            // TODO: test library
             //string standardize1 = UrlHelper.Standardize("HTTP://Local.host/", "/Templates/Something/Handlers/IR.ashx?T=CS&P=/globalassets/media/images/push-images/125998-diakonia-ammattikorkeakoulu-push-285x236.jpg&PI=24970&PL=en&R=47677&W=175&H=145");
             //string standardize2 = UrlHelper.Standardize("http://local.host/", "http://local.host/Templates/Something/Handlers/IR.ashx?T=CS&P=/globalassets/media/images/push-images/125998-diakonia-ammattikorkeakoulu-push-285x236.jpg&PI=24970&PL=en&R=47677&W=175&H=145");
             //string standardize3 = UrlHelper.Standardize("http://local.host/", "http://test.local.host/akjsdhkajdhsaa/lkjasdklas.jpg");
@@ -44,9 +46,32 @@ namespace SimpleWebCopy
             //Console.ReadLine();
         }
 
+        private static void Crawler_ThreadComplete(object sender, Events.ThreadCompleteEventArgs e)
+        {
+            Task.Run(() =>
+            {
+                lock (renderLock)
+                {
+                    Console.SetCursorPosition(18, 1);
+                    Console.Write($"{crawler.State.ItemProcessedCount}/{crawler.State.ItemCount}");
+                    
+                    int lineStart = 3 + (e.Thread * 3);
+                    Console.SetCursorPosition(11, lineStart);
+                    Console.Write($"Complete      ");
+
+                    Console.SetCursorPosition(0, lineStart + 1);
+                    Console.Write("---");
+                    Console.Write(new string(' ', Console.WindowWidth - Console.CursorLeft));
+
+                    Console.SetCursorPosition(0, lineStart + 2);
+                    Console.Write(new string(' ', Console.WindowWidth));
+                }
+            });
+        }
+
         private static object renderLock = new object();
 
-        private static void Crawler_CrawlUpdated(object sender, Events.ThreadUpdatedEventArgs e)
+        private static void Crawler_ThreadUpdated(object sender, Events.ThreadUpdatedEventArgs e)
         {
             Task.Run(() =>
             {
@@ -95,37 +120,5 @@ namespace SimpleWebCopy
                 Console.WriteLine();
             }
         }
-
-        //private static void Render()
-        //{
-        //    lock (renderLock)
-        //    {
-        //        //Console.Clear();
-        //        //Console.WriteLine($"Currently scanning: {crawler.Site}");
-        //        //Console.WriteLine($"Processed {crawler.State.ItemProcessedCount}/{crawler.State.ItemCount} of the found items.");
-        //        //Console.WriteLine();
-
-        //        //var threads = crawler.Threads.ToArray();
-        //        //for(int i = 0; i < threads.Length; i++)
-        //        //{
-        //        //    Console.WriteLine($"Thread 1: {threads[i].Value} - {threads[i].Key}");
-        //        //}
-
-        //        StringBuilder output = new StringBuilder();
-        //        //output.AppendLine($"Currently scanning: {crawler.Site}");
-        //        //output.AppendLine($"Processed status: {crawler.State.ItemProcessedCount}/{crawler.State.ItemCount}");
-        //        //output.AppendLine();
-
-        //        var threads = crawler.Threads.ToArray();
-        //        for (int i = 0; i < threads.Length; i++)
-        //        {
-        //            output.AppendLine($"Thread 1: {threads[i].Value} - {threads[i].Key}");
-        //        }
-
-        //        string outputString = output.ToString();
-        //        Console.Clear();
-        //        Console.Write(outputString);
-        //    }
-        //}
     }
 }

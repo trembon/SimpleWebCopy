@@ -164,6 +164,7 @@ namespace SimpleWebCopy
                                     FindAndReplaceURLs(document, itemLocalUrl, "link", "href");
                                     FindAndReplaceURLs(document, itemLocalUrl, "script", "src");
                                     FindAndReplaceURLs(document, itemLocalUrl, "img", "src");
+                                    FindAndReplaceURLs(document, itemLocalUrl, "img", "data-src");
                                     FindAndReplaceURLs(document, itemLocalUrl, "source", "srcset");
                                 }
                                 catch (Exception ex)

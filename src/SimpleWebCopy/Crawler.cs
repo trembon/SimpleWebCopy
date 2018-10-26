@@ -17,6 +17,8 @@ namespace SimpleWebCopy
 {
     public class Crawler : IDisposable
     {
+        private int threads;
+
         private HttpClient httpClient;
         private CookieContainer cookieContainer;
         private HttpClientHandler httpClientHandler;
@@ -27,15 +29,19 @@ namespace SimpleWebCopy
 
         public string Site { get; }
 
+        public string Output { get; }
+
         public SiteItemState State { get; }
 
         public event EventHandler<ThreadUpdatedEventArgs> ThreadUpdated;
 
         public event EventHandler<ThreadCompleteEventArgs> ThreadComplete;
 
-        public Crawler(string site)
+        public Crawler(string site, string output, int threads)
         {
             this.Site = UrlHelper.Standardize(site);
+            this.Output = output;
+            this.threads = threads;
 
             queue = new ConcurrentQueue<string>();
 
@@ -57,7 +63,7 @@ namespace SimpleWebCopy
             State.AddLink(Site);
 
             List<Task> tasks = new List<Task>();
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < threads; i++)
             {
                 Task thread = Crawl(i);
                 tasks.Add(thread);
@@ -101,10 +107,12 @@ namespace SimpleWebCopy
                                     {
                                         if (!response.IsSuccessStatusCode)
                                         {
+                                            // check so the requested return 200 OK
                                             State.SetResult(itemUrl, response.StatusCode);
                                         }
                                         else if (!ShouldIndex(response.RequestMessage.RequestUri.ToString()))
                                         {
+                                            // check if the request was redirected
                                             State.SetResult(itemUrl, null);
                                         }
                                         else
@@ -125,11 +133,7 @@ namespace SimpleWebCopy
                                                 {
                                                     using (Stream stream = await response.Content.ReadAsStreamAsync())
                                                     {
-                                                        filePath = Path.Combine("output", State.GetLocalLink(itemUrl));
-
-                                                        string folder = Path.GetDirectoryName(filePath);
-                                                        if (!Directory.Exists(folder))
-                                                            Directory.CreateDirectory(folder);
+                                                        filePath = GetFileOutput(itemLocalUrl);
 
                                                         using (Stream file = File.Create(filePath))
                                                             await stream.CopyToAsync(file);
@@ -197,7 +201,7 @@ namespace SimpleWebCopy
                                     content = regexCssUrls.Replace(content, new MatchEvaluator(m =>
                                         {
                                             string url = HttpUtility.HtmlDecode(m.Groups[1].Value).Replace("'", "");
-                                            if (!string.IsNullOrWhiteSpace(url))
+                                            if (!string.IsNullOrWhiteSpace(url) && Uri.IsWellFormedUriString(url, UriKind.Relative))
                                             {
                                                 string fullUrl = State.AddLink(url);
                                                 string localUrl = State.GetLocalLink(fullUrl);
@@ -220,15 +224,11 @@ namespace SimpleWebCopy
                                 string filePath = null;
                                 try
                                 {
-                                    filePath = Path.Combine("output", itemLocalUrl);
-
                                     UpdateThread(threadId, itemUrl, "Saving");
 
-                                    string folder = Path.GetDirectoryName(filePath);
-                                    if (!Directory.Exists(folder))
-                                        Directory.CreateDirectory(folder);
-
+                                    filePath = GetFileOutput(itemLocalUrl);
                                     await File.WriteAllTextAsync(filePath, content);
+
                                     State.SetResult(itemUrl, null);
                                 }
                                 catch
@@ -281,6 +281,17 @@ namespace SimpleWebCopy
                     node.SetAttributeValue(attribute, relativeUrl);
                 }
             }
+        }
+
+        private string GetFileOutput(string itemLocalUrl)
+        {
+            string filePath = Path.Combine(Output, itemLocalUrl);
+
+            string folder = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+
+            return filePath;
         }
     }
 }

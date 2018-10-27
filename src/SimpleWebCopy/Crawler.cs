@@ -17,7 +17,6 @@ namespace SimpleWebCopy
 {
     public class Crawler : IDisposable
     {
-        private int threads;
 
         private HttpClient httpClient;
         private CookieContainer cookieContainer;
@@ -25,11 +24,14 @@ namespace SimpleWebCopy
 
         private ConcurrentQueue<string> queue;
 
-        private Regex regexCssUrls = new Regex("url\\(['\"]?(.*?)['\"]?\\)", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+        private Regex regexCssUrls = new Regex("url\\(['\"]?(.*?)['\"]?\\)", RegexOptions.Compiled | RegexOptions.Multiline);
+        private Regex regexUrlVariables = new Regex("\\+(.*?)\\+", RegexOptions.Compiled);
 
         public string Site { get; }
 
         public string Output { get; }
+
+        public int Threads { get; }
 
         public SiteItemState State { get; }
 
@@ -37,11 +39,15 @@ namespace SimpleWebCopy
 
         public event EventHandler<ThreadCompleteEventArgs> ThreadComplete;
 
+        public event EventHandler CrawlStarted;
+
+        public event EventHandler CrawlComplete;
+
         public Crawler(string site, string output, int threads)
         {
             this.Site = UrlHelper.Standardize(site);
             this.Output = output;
-            this.threads = threads;
+            this.Threads = threads;
 
             queue = new ConcurrentQueue<string>();
 
@@ -60,16 +66,20 @@ namespace SimpleWebCopy
 
         public async Task Start()
         {
+            CrawlStarted.Trigger(this, new EventArgs());
+
             State.AddLink(Site);
 
             List<Task> tasks = new List<Task>();
-            for (int i = 0; i < threads; i++)
+            for (int i = 0; i < Threads; i++)
             {
                 Task thread = Crawl(i);
                 tasks.Add(thread);
             }
 
             await Task.WhenAll(tasks);
+            
+            CrawlComplete.Trigger(this, new EventArgs());
         }
 
         private void UpdateThread(int threadId, string itemUrl, string state)
@@ -201,7 +211,7 @@ namespace SimpleWebCopy
                                     content = regexCssUrls.Replace(content, new MatchEvaluator(m =>
                                         {
                                             string url = HttpUtility.HtmlDecode(m.Groups[1].Value).Replace("'", "");
-                                            if (!string.IsNullOrWhiteSpace(url) && Uri.IsWellFormedUriString(url, UriKind.Relative))
+                                            if (!string.IsNullOrWhiteSpace(url) && !regexUrlVariables.IsMatch(url) && Uri.IsWellFormedUriString(url, UriKind.Relative))
                                             {
                                                 string fullUrl = State.AddLink(url);
                                                 string localUrl = State.GetLocalLink(fullUrl);

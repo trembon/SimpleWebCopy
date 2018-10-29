@@ -1,4 +1,5 @@
-﻿using SimpleWebCopy.Events;
+﻿using SimpleWebCopy.Enums;
+using SimpleWebCopy.Events;
 using SimpleWebCopy.Extensions;
 using System;
 using System.Collections.Concurrent;
@@ -16,14 +17,13 @@ namespace SimpleWebCopy
         private ConcurrentDictionary<string, SiteItem> state;
         private ConcurrentDictionary<string, object> stateLocks;
 
-        public int ItemCount
-        {
-            get { return state.Count; }
-        }
+        public int ItemCount => state.Count;
+
+        public IEnumerable<SiteItem> Items => state.Values;
 
         public int ItemProcessedCount
         {
-            get { return state.Count(kvp => kvp.Value.IsScanned); }
+            get { return state.Count(kvp => kvp.Value.Status != ItemStatus.NotProcessed && kvp.Value.Status != ItemStatus.IsProcessing); }
         }
 
         public event EventHandler<ItemAddedEventArgs> ItemAdded;
@@ -36,11 +36,11 @@ namespace SimpleWebCopy
             stateLocks = new ConcurrentDictionary<string, object>();
         }
 
-        public string AddLink(string url)
+        public string AddLink(string url, string source)
         {
             url = UrlHelper.Standardize(baseUrl, url);
 
-            SiteItem item = state.GetOrAdd(url, new SiteItem(baseUrl, url));
+            SiteItem item = state.GetOrAdd(url, new SiteItem(baseUrl, url, source));
             ItemAdded.Trigger(this, new ItemAddedEventArgs(item.FullURL));
 
             return item.FullURL;
@@ -56,18 +56,19 @@ namespace SimpleWebCopy
 
         public bool NeedsScanning()
         {
-            return state.Values.Any(v => !v.IsScanned);
+            return ItemCount != ItemProcessedCount;
         }
 
-        public void SetResult(string url, HttpStatusCode? statusCode)
+        public void SetResult(string url, ItemStatus status, string message = null, Exception exception = null)
         {
             object lockObject = stateLocks.GetOrAdd(url, new object());
             lock (lockObject)
             {
                 if (state.TryGetValue(url, out SiteItem item))
                 {
-                    item.IsScanned = true;
-                    // TODO: set result
+                    item.Status = status;
+                    item.StatusMessage = message;
+                    item.StatusException = exception;
                 }
             }
         }
@@ -79,9 +80,9 @@ namespace SimpleWebCopy
             {
                 if(state.TryGetValue(url, out SiteItem item))
                 {
-                    if(!item.IsScanned && !item.IsScanning)
+                    if(item.Status == ItemStatus.NotProcessed)
                     {
-                        item.IsScanning = true;
+                        item.Status = ItemStatus.IsProcessing;
                         return true;
                     }
                 }

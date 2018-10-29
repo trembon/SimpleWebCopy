@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SimpleWebCopy.Enums;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -6,21 +7,23 @@ namespace SimpleWebCopy
 {
     public class SiteItem
     {
-        public Guid ID { get; }
-
         public string FullURL { get; set; }
 
         public string LocalFilePath { get; set; }
-        
-        public bool IsScanned { get; set; }
 
-        public bool IsScanning { get; set; }
+        public string Source { get; set; }
 
-        public SiteItem(string baseUrl, string url)
+        public ItemStatus Status { get; set; }
+
+        public string StatusMessage { get; set; }
+
+        public Exception StatusException { get; set; }
+
+        public SiteItem(string baseUrl, string url, string source)
         {
-            this.ID = Guid.NewGuid();
             this.FullURL = url;
-
+            this.Source = source;
+            this.Status = ItemStatus.NotProcessed;
             this.LocalFilePath = UrlHelper.CreateLocalFileURL(baseUrl, url);
         }
     }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.CommandLineUtils;
 using System;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,12 +17,13 @@ namespace SimpleWebCopy
 
             CommandLineApplication app = new CommandLineApplication();
             app.Name = "SimpleWebCopy";
-            app.Description = "Creates a simple offline copy of the specified website";
+            app.Description = "Creates an offline copy of the specified website";
 
             app.HelpOption("-?|-h|--help");
             CommandOption outputOption = app.Option("-o|--output <output>", "Output folder for the offline files. Default: ./output", CommandOptionType.SingleValue);
             CommandOption threadsOption = app.Option("-t|--threads <thread>", "Number of threads the crawler will use. Default: 5", CommandOptionType.SingleValue);
             CommandOption userAgentOption = app.Option("-ua|--user-agent <user-agent>", "Number of threads the crawler will use. Default: SimpleWebCopy vX.X", CommandOptionType.SingleValue);
+            CommandOption reportOption = app.Option("-r|--report <report>", "Where the report will be stored, containing the result of the copy. Default: <output>/_report.json", CommandOptionType.SingleValue);
 
             var siteArgument = app.Argument("[website]", "The website to crawl and make an offline copy of");
 
@@ -45,11 +47,17 @@ namespace SimpleWebCopy
                 if (userAgentOption.HasValue())
                     userAgent = userAgentOption.Value();
 
+                string reportPath = Path.Combine(outputFolder, "_report.json");
+                if (reportOption.HasValue())
+                    reportPath = reportOption.Value();
+
                 crawler = new Crawler(siteArgument.Value, outputFolder, numberOfThreads, userAgent);
                 renderer = new ConsoleRender(crawler);
 
+                DateTime startTime = DateTime.Now;
                 await crawler.Start();
 
+                Report.Generate(reportPath, crawler, DateTime.Now - startTime);
                 return 0;
             });
             

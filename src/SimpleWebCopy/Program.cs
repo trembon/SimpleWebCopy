@@ -21,6 +21,7 @@ namespace SimpleWebCopy
             app.HelpOption("-?|-h|--help");
             CommandOption outputOption = app.Option("-o|--output <output>", "Output folder for the offline files. Default: ./output", CommandOptionType.SingleValue);
             CommandOption threadsOption = app.Option("-t|--threads <thread>", "Number of threads the crawler will use. Default: 5", CommandOptionType.SingleValue);
+            CommandOption userAgentOption = app.Option("-ua|--user-agent <user-agent>", "Number of threads the crawler will use. Default: SimpleWebCopy vX.X", CommandOptionType.SingleValue);
 
             var siteArgument = app.Argument("[website]", "The website to crawl and make an offline copy of");
 
@@ -39,8 +40,12 @@ namespace SimpleWebCopy
                 string outputFolder = "./output";
                 if (outputOption.HasValue())
                     outputFolder = outputOption.Value().Replace("\"", "").Replace("'", "");
+                
+                string userAgent = "SimpleWebCopy v1.0";
+                if (userAgentOption.HasValue())
+                    userAgent = userAgentOption.Value();
 
-                crawler = new Crawler(siteArgument.Value, outputFolder, numberOfThreads);
+                crawler = new Crawler(siteArgument.Value, outputFolder, numberOfThreads, userAgent);
                 renderer = new ConsoleRender(crawler);
 
                 await crawler.Start();

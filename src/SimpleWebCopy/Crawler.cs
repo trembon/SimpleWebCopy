@@ -17,6 +17,7 @@ namespace SimpleWebCopy
 {
     public class Crawler : IDisposable
     {
+        private string userAgent;
 
         private HttpClient httpClient;
         private CookieContainer cookieContainer;
@@ -43,11 +44,13 @@ namespace SimpleWebCopy
 
         public event EventHandler CrawlComplete;
 
-        public Crawler(string site, string output, int threads)
+        public Crawler(string site, string output, int threads, string userAgent)
         {
             this.Site = UrlHelper.Standardize(site);
             this.Output = output;
             this.Threads = threads;
+
+            this.userAgent = userAgent;
 
             queue = new ConcurrentQueue<string>();
 
@@ -57,6 +60,8 @@ namespace SimpleWebCopy
             cookieContainer = new CookieContainer();
             httpClientHandler = new HttpClientHandler { CookieContainer = cookieContainer, AllowAutoRedirect = true };
             httpClient = new HttpClient(httpClientHandler);
+
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
         }
 
         private void State_ItemAdded(object sender, Events.ItemAddedEventArgs e)
@@ -178,8 +183,8 @@ namespace SimpleWebCopy
                                     FindAndReplaceURLs(document, itemLocalUrl, "link", "href");
                                     FindAndReplaceURLs(document, itemLocalUrl, "script", "src");
                                     FindAndReplaceURLs(document, itemLocalUrl, "img", "src");
-                                    FindAndReplaceURLs(document, itemLocalUrl, "img", "data-src");
                                     FindAndReplaceURLs(document, itemLocalUrl, "source", "srcset");
+                                    FindAndReplaceURLs(document, itemLocalUrl, "*", "data-src"); // semi-standard way to lazy-load?
                                 }
                                 catch (Exception ex)
                                 {
@@ -217,7 +222,7 @@ namespace SimpleWebCopy
                                                 string localUrl = State.GetLocalLink(fullUrl);
 
                                                 string relativeUrl = UrlHelper.CreateRelativeURL(itemLocalUrl, localUrl);
-                                                return m.Value.Replace(url, relativeUrl);
+                                                return m.Value.Replace(m.Groups[1].Value, relativeUrl);
                                             }
 
                                             return m.Value;

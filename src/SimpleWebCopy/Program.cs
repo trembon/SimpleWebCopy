@@ -22,7 +22,7 @@ namespace SimpleWebCopy
             app.HelpOption("-?|-h|--help");
             CommandOption outputOption = app.Option("-o|--output <output>", "Output folder for the offline files. Default: ./output", CommandOptionType.SingleValue);
             CommandOption threadsOption = app.Option("-t|--threads <thread>", "Number of threads the crawler will use. Default: 5", CommandOptionType.SingleValue);
-            CommandOption userAgentOption = app.Option("-ua|--user-agent <user-agent>", "Number of threads the crawler will use. Default: SimpleWebCopy vX.X", CommandOptionType.SingleValue);
+            CommandOption userAgentOption = app.Option("-ua|--user-agent <user-agent>", "The user agent that will be sent in the header with requests. Default: SimpleWebCopy vX.X", CommandOptionType.SingleValue);
             CommandOption reportOption = app.Option("-r|--report <report>", "Where the report will be stored, containing the result of the copy. Default: <output>/_report.json", CommandOptionType.SingleValue);
 
             var siteArgument = app.Argument("[website]", "The website to crawl and make an offline copy of");

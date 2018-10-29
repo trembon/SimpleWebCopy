@@ -15,7 +15,7 @@ namespace SimpleWebCopy
         {
             Console.CursorVisible = false;
 
-            CommandLineApplication app = new CommandLineApplication();
+            CommandLineApplication app = new CommandLineApplication(false);
             app.Name = "SimpleWebCopy";
             app.Description = "Creates an offline copy of the specified website";
 

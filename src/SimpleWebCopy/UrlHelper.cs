@@ -11,10 +11,12 @@ namespace SimpleWebCopy
         private static int queryCounter = 1;
         private static object queryCounterLock = new object();
 
-        private static string[] knownHtmlExtensions = new string[]
+        private static string[] knownLogicExtensions = new string[]
         {
             ".asp",
             ".aspx",
+            ".asmx",
+            ".ashx",
             ".cshtml",
             ".dhtml",
             ".dll",
@@ -103,8 +105,27 @@ namespace SimpleWebCopy
             if (string.IsNullOrWhiteSpace(url))
                 url = "index.html";
 
-            if (knownHtmlExtensions.Contains(Path.GetExtension(url)))
-                url = url.Replace(Path.GetExtension(url), ".html");
+            if (knownLogicExtensions.Contains(Path.GetExtension(url)))
+            {
+                string fileType = ".html";
+                switch (sourceElement)
+                {
+                    case "link":
+                        fileType = ".css";
+                        break;
+
+                    case "script":
+                        fileType = ".js";
+                        break;
+
+                    case "source":
+                    case "img":
+                        fileType = ".data";
+                        break;
+                }
+
+                url = url.Replace(Path.GetExtension(url), fileType);
+            }
 
             if (!string.IsNullOrWhiteSpace(uri.Query))
             {

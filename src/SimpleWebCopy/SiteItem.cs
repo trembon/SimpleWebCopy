@@ -7,6 +7,8 @@ namespace SimpleWebCopy
 {
     public class SiteItem
     {
+        public string ID { get; set; }
+
         public string FullURL { get; set; }
 
         public string LocalFilePath { get; set; }
@@ -19,12 +21,13 @@ namespace SimpleWebCopy
 
         public Exception StatusException { get; set; }
 
-        public SiteItem(string baseUrl, string url, string source, string sourceElement)
-        {
+        public SiteItem(string id, string baseUrl, string url, string source, string sourceElement)
+        {;
+            this.ID = id;
             this.FullURL = url;
             this.Source = source;
             this.Status = ItemStatus.NotProcessed;
-            this.LocalFilePath = UrlHelper.CreateLocalFileURL(baseUrl, url, sourceElement);
+            this.LocalFilePath = UrlHelper.CreateLocalFileURL(baseUrl, id, sourceElement);
         }
     }
 }

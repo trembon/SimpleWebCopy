@@ -38,17 +38,26 @@ namespace SimpleWebCopy
 
         public string AddLink(string url, string source, string sourceElement)
         {
-            url = UrlHelper.Standardize(baseUrl, url);
+            string id = UrlHelper.Standardize(baseUrl, url);
+            url = UrlHelper.MakeAbsolute(baseUrl, url);
 
-            SiteItem item = state.GetOrAdd(url, new SiteItem(baseUrl, url, source, sourceElement));
-            ItemAdded.Trigger(this, new ItemAddedEventArgs(item.FullURL));
+            SiteItem item = state.GetOrAdd(id, new SiteItem(id, baseUrl, url, source, sourceElement));
+            ItemAdded.Trigger(this, new ItemAddedEventArgs(item.ID));
 
-            return item.FullURL;
+            return item.ID;
         }
 
-        public string GetLocalLink(string url)
+        public string GetURL(string id)
         {
-            if (state.TryGetValue(url, out SiteItem item))
+            if (state.TryGetValue(id, out SiteItem item))
+                return item.FullURL;
+
+            return string.Empty;
+        }
+
+        public string GetLocalLink(string id)
+        {
+            if (state.TryGetValue(id, out SiteItem item))
                 return item.LocalFilePath;
 
             return string.Empty;
@@ -59,12 +68,12 @@ namespace SimpleWebCopy
             return ItemCount != ItemProcessedCount;
         }
 
-        public void SetResult(string url, ItemStatus status, string message = null, Exception exception = null)
+        public void SetResult(string id, ItemStatus status, string message = null, Exception exception = null)
         {
-            object lockObject = stateLocks.GetOrAdd(url, new object());
+            object lockObject = stateLocks.GetOrAdd(id, new object());
             lock (lockObject)
             {
-                if (state.TryGetValue(url, out SiteItem item))
+                if (state.TryGetValue(id, out SiteItem item))
                 {
                     item.Status = status;
                     item.StatusMessage = message;
@@ -73,12 +82,12 @@ namespace SimpleWebCopy
             }
         }
 
-        public bool StartProcessing(string url)
+        public bool StartProcessing(string id)
         {
-            object lockObject = stateLocks.GetOrAdd(url, new object());
+            object lockObject = stateLocks.GetOrAdd(id, new object());
             lock (lockObject)
             {
-                if(state.TryGetValue(url, out SiteItem item))
+                if(state.TryGetValue(id, out SiteItem item))
                 {
                     if(item.Status == ItemStatus.NotProcessed)
                     {

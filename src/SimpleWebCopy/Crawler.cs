@@ -97,17 +97,18 @@ namespace SimpleWebCopy
         {
             while (true)
             {
-                if (queue.TryDequeue(out string itemUrl))
+                if (queue.TryDequeue(out string itemId))
                 {
-                    if (State.StartProcessing(itemUrl))
+                    if (State.StartProcessing(itemId))
                     {
-                        UpdateThread(threadId, itemUrl, "Starting");
+                        string itemUrl = State.GetURL(itemId);
+                        string itemLocalUrl = State.GetLocalLink(itemId);
 
-                        string itemLocalUrl = State.GetLocalLink(itemUrl);
+                        UpdateThread(threadId, itemUrl, "Starting");
 
                         if (!ShouldIndex(itemUrl))
                         {
-                            State.SetResult(itemUrl, ItemStatus.Ignored);
+                            State.SetResult(itemId, ItemStatus.Ignored);
                         }
                         else
                         {
@@ -124,12 +125,12 @@ namespace SimpleWebCopy
                                         if (!response.IsSuccessStatusCode)
                                         {
                                             // check so the requested return 200 OK
-                                            State.SetResult(itemUrl, ItemStatus.Error, $"Invalid status code in response (Was: {response.StatusCode})");
+                                            State.SetResult(itemId, ItemStatus.Error, $"Invalid status code in response (Was: {response.StatusCode})");
                                         }
                                         else if (!ShouldIndex(response.RequestMessage.RequestUri.ToString()))
                                         {
                                             // check if the request was redirected
-                                            State.SetResult(itemUrl, ItemStatus.Ignored, $"Ignored, was redirected to '{response.RequestMessage.RequestUri}'");
+                                            State.SetResult(itemId, ItemStatus.Ignored, $"Ignored, was redirected to '{response.RequestMessage.RequestUri}'");
                                         }
                                         else
                                         {
@@ -154,12 +155,12 @@ namespace SimpleWebCopy
                                                         using (Stream file = File.Create(filePath))
                                                             await stream.CopyToAsync(file);
 
-                                                        State.SetResult(itemUrl, ItemStatus.Processed);
+                                                        State.SetResult(itemId, ItemStatus.Processed);
                                                     }
                                                 }
                                                 catch (Exception ex)
                                                 {
-                                                    State.SetResult(itemUrl, ItemStatus.Error, "Failed to download binary file.", ex);
+                                                    State.SetResult(itemId, ItemStatus.Error, "Failed to download binary file.", ex);
                                                 }
                                             }
                                         }
@@ -168,7 +169,7 @@ namespace SimpleWebCopy
                             }
                             catch (Exception ex)
                             {
-                                State.SetResult(itemUrl, ItemStatus.Error, "Failed to download content", ex);
+                                State.SetResult(itemId, ItemStatus.Error, "Failed to download content", ex);
                             }
 
                             HtmlDocument document = null;
@@ -180,7 +181,7 @@ namespace SimpleWebCopy
                                     document = new HtmlDocument();
                                     document.LoadHtml(html);
 
-                                    //FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "a", "href");
+                                    FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "a", "href");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "link", "href");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "script", "src");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "img", "src");
@@ -190,7 +191,7 @@ namespace SimpleWebCopy
                                 catch (Exception ex)
                                 {
                                     document = null;
-                                    State.SetResult(itemUrl, ItemStatus.Error, "Failed to parse html document.", ex);
+                                    State.SetResult(itemId, ItemStatus.Error, "Failed to parse html document.", ex);
                                 }
                             }
 
@@ -198,13 +199,12 @@ namespace SimpleWebCopy
                             {
                                 try
                                 {
-
                                     UpdateThread(threadId, itemUrl, "Converting");
                                     content = document.DocumentNode.OuterHtml;
                                 }
                                 catch (Exception ex)
                                 {
-                                    State.SetResult(itemUrl, ItemStatus.Error, "Failed to convert html to content.", ex);
+                                    State.SetResult(itemId, ItemStatus.Error, "Failed to convert html to content.", ex);
                                 }
                             }
 
@@ -218,10 +218,13 @@ namespace SimpleWebCopy
                                             string url = HttpUtility.HtmlDecode(m.Groups[1].Value).Replace("'", "");
                                             if (!string.IsNullOrWhiteSpace(url) && !regexUrlVariables.IsMatch(url) && Uri.IsWellFormedUriString(url, UriKind.Relative))
                                             {
-                                                string fullUrl = State.AddLink(url, itemUrl, null);
-                                                string localUrl = State.GetLocalLink(fullUrl);
+                                                string id = State.AddLink(url, itemUrl, null);
+                                                string localUrl = State.GetLocalLink(id);
 
                                                 string relativeUrl = UrlHelper.CreateRelativeURL(itemLocalUrl, localUrl);
+                                                if (url.Contains("#"))
+                                                    relativeUrl += url.Substring(url.LastIndexOf('#'));
+
                                                 return m.Value.Replace(m.Groups[1].Value, relativeUrl);
                                             }
 
@@ -230,7 +233,7 @@ namespace SimpleWebCopy
                                 }
                                 catch (Exception ex)
                                 {
-                                    State.SetResult(itemUrl, ItemStatus.Error, "Failed to parse content.", ex);
+                                    State.SetResult(itemId, ItemStatus.Error, "Failed to parse content.", ex);
                                 }
                             }
 
@@ -243,11 +246,11 @@ namespace SimpleWebCopy
                                     string filePath = GetFileOutput(itemLocalUrl);
                                     await File.WriteAllTextAsync(filePath, content);
 
-                                    State.SetResult(itemUrl, ItemStatus.Processed);
+                                    State.SetResult(itemId, ItemStatus.Processed);
                                 }
                                 catch (Exception ex)
                                 {
-                                    State.SetResult(itemUrl, ItemStatus.Error, "Failed to store file on filesystem.", ex);
+                                    State.SetResult(itemId, ItemStatus.Error, "Failed to store file on filesystem.", ex);
                                 }
                             }
                         }
@@ -295,10 +298,13 @@ namespace SimpleWebCopy
                 {
                     href = HttpUtility.HtmlDecode(href);
 
-                    string fullUrl = State.AddLink(href, sourceUrl, node.OriginalName);
-                    string localUrl = State.GetLocalLink(fullUrl);
+                    string id = State.AddLink(href, sourceUrl, node.OriginalName);
+                    string localUrl = State.GetLocalLink(id);
 
                     string relativeUrl = UrlHelper.CreateRelativeURL(itemLocalUrl, localUrl);
+                    if (href.Contains("#"))
+                        relativeUrl += href.Substring(href.LastIndexOf('#'));
+
                     node.SetAttributeValue(attribute, relativeUrl);
                 }
             }

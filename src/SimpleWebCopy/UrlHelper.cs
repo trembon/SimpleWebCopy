@@ -31,8 +31,11 @@ namespace SimpleWebCopy
         {
             Uri uri = new Uri(url);
 
+            // if query is only a ?, remove it
+            string query = uri.Query == "?" ? "" : uri.Query;
+
             // make the base url and path to lower case
-            uri = new Uri($"{uri.Scheme}://{uri.Authority}{uri.AbsolutePath.ToLowerInvariant()}{uri.Query}");
+            uri = new Uri($"{uri.Scheme}://{uri.Authority}{uri.AbsolutePath.ToLowerInvariant()}{query}");
 
             // append a trailing slash to all urls if they dont contain an extension
             if (!Path.HasExtension(uri.LocalPath) && !uri.LocalPath.EndsWith("/"))
@@ -42,6 +45,12 @@ namespace SimpleWebCopy
         }
 
         public static string Standardize(string baseUrl, string url)
+        {
+            string absoluteUrl = MakeAbsolute(baseUrl, url);
+            return Standardize(absoluteUrl);
+        }
+
+        public static string MakeAbsolute(string baseUrl, string url)
         {
             Uri baseUri = new Uri(baseUrl);
             Uri uri = null;
@@ -53,8 +62,8 @@ namespace SimpleWebCopy
 
             if (uri.Scheme != "http" && uri.Scheme != "https")
                 uri = baseUri;
-            
-            return Standardize(uri.ToString());
+
+            return uri.ToString();
         }
 
         public static string CreateLocalFileURL(string baseUrl, string url, string sourceElement)

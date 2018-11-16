@@ -86,6 +86,10 @@ namespace SimpleWebCopy
                 item = "---";
 
             Console.SetCursorPosition(0, threadRows[thread] + 1);
+
+            if (item.Length >= Console.WindowWidth - 5)
+                item = item.Substring(0, Console.WindowWidth - 5) + "...";
+
             Console.Write(item);
             Console.Write(new string(' ', Console.WindowWidth - Console.CursorLeft));
 

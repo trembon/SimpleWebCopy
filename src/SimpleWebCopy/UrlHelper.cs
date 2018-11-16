@@ -57,8 +57,10 @@ namespace SimpleWebCopy
             return Standardize(uri.ToString());
         }
 
-        public static string CreateLocalFileURL(string baseUrl, string url)
+        public static string CreateLocalFileURL(string baseUrl, string url, string sourceElement)
         {
+            sourceElement = sourceElement ?? "";
+
             Uri baseUri = new Uri(baseUrl);
             Uri uri = new Uri(url);
 
@@ -68,7 +70,26 @@ namespace SimpleWebCopy
             url = uri.LocalPath.Substring(1);
 
             if (url.EndsWith("/"))
-                url = url.Substring(0, url.Length - 1) + ".html";
+            {
+                string fileType = ".html";
+                switch (sourceElement)
+                {
+                    case "link":
+                        fileType = ".css";
+                        break;
+
+                    case "script":
+                        fileType = ".js";
+                        break;
+
+                    case "source":
+                    case "img":
+                        fileType = ".data";
+                        break;
+                }
+
+                url = url.Substring(0, url.Length - 1) + fileType;
+            }
 
             if (string.IsNullOrWhiteSpace(url))
                 url = "index.html";

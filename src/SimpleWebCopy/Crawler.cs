@@ -74,7 +74,7 @@ namespace SimpleWebCopy
         {
             CrawlStarted.Trigger(this, new EventArgs());
 
-            State.AddLink(Site, "<argument>");
+            State.AddLink(Site, "<argument>", null);
 
             List<Task> tasks = new List<Task>();
             for (int i = 0; i < Threads; i++)
@@ -180,7 +180,7 @@ namespace SimpleWebCopy
                                     document = new HtmlDocument();
                                     document.LoadHtml(html);
 
-                                    FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "a", "href");
+                                    //FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "a", "href");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "link", "href");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "script", "src");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "img", "src");
@@ -218,7 +218,7 @@ namespace SimpleWebCopy
                                             string url = HttpUtility.HtmlDecode(m.Groups[1].Value).Replace("'", "");
                                             if (!string.IsNullOrWhiteSpace(url) && !regexUrlVariables.IsMatch(url) && Uri.IsWellFormedUriString(url, UriKind.Relative))
                                             {
-                                                string fullUrl = State.AddLink(url, itemUrl);
+                                                string fullUrl = State.AddLink(url, itemUrl, null);
                                                 string localUrl = State.GetLocalLink(fullUrl);
 
                                                 string relativeUrl = UrlHelper.CreateRelativeURL(itemLocalUrl, localUrl);
@@ -293,7 +293,9 @@ namespace SimpleWebCopy
                 string href = node.GetAttributeValue(attribute, "");
                 if (!string.IsNullOrWhiteSpace(href))
                 {
-                    string fullUrl = State.AddLink(href, sourceUrl);
+                    href = HttpUtility.HtmlDecode(href);
+
+                    string fullUrl = State.AddLink(href, sourceUrl, node.OriginalName);
                     string localUrl = State.GetLocalLink(fullUrl);
 
                     string relativeUrl = UrlHelper.CreateRelativeURL(itemLocalUrl, localUrl);

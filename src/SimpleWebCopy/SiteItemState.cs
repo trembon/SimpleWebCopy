@@ -36,11 +36,11 @@ namespace SimpleWebCopy
             stateLocks = new ConcurrentDictionary<string, object>();
         }
 
-        public string AddLink(string url, string source)
+        public string AddLink(string url, string source, string sourceElement)
         {
             url = UrlHelper.Standardize(baseUrl, url);
 
-            SiteItem item = state.GetOrAdd(url, new SiteItem(baseUrl, url, source));
+            SiteItem item = state.GetOrAdd(url, new SiteItem(baseUrl, url, source, sourceElement));
             ItemAdded.Trigger(this, new ItemAddedEventArgs(item.FullURL));
 
             return item.FullURL;

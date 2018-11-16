@@ -19,12 +19,12 @@ namespace SimpleWebCopy
 
         public Exception StatusException { get; set; }
 
-        public SiteItem(string baseUrl, string url, string source)
+        public SiteItem(string baseUrl, string url, string source, string sourceElement)
         {
             this.FullURL = url;
             this.Source = source;
             this.Status = ItemStatus.NotProcessed;
-            this.LocalFilePath = UrlHelper.CreateLocalFileURL(baseUrl, url);
+            this.LocalFilePath = UrlHelper.CreateLocalFileURL(baseUrl, url, sourceElement);
         }
     }
 }

@@ -24,6 +24,7 @@ namespace SimpleWebCopy
             CommandOption threadsOption = app.Option("-t|--threads <thread>", "Number of threads the crawler will use. Default: 5", CommandOptionType.SingleValue);
             CommandOption userAgentOption = app.Option("-ua|--user-agent <user-agent>", "The user agent that will be sent in the header with requests. Default: SimpleWebCopy vX.X", CommandOptionType.SingleValue);
             CommandOption reportOption = app.Option("-r|--report <report>", "Where the report will be stored, containing the result of the copy. Default: <output>/_report.json", CommandOptionType.SingleValue);
+            CommandOption linksOption = app.Option("-l|--link <links>", "Extra links to add to the crawler that might not be linked on the site. Default: null", CommandOptionType.MultipleValue);
 
             var siteArgument = app.Argument("[website]", "The website to crawl and make an offline copy of");
 
@@ -51,7 +52,11 @@ namespace SimpleWebCopy
                 if (reportOption.HasValue())
                     reportPath = reportOption.Value();
 
-                crawler = new Crawler(siteArgument.Value, outputFolder, numberOfThreads, userAgent);
+                string[] links = new string[0];
+                if (linksOption.HasValue())
+                    links = linksOption.Values.ToArray();
+
+                crawler = new Crawler(siteArgument.Value, outputFolder, numberOfThreads, userAgent, links);
                 renderer = new ConsoleRender(crawler);
 
                 DateTime startTime = DateTime.Now;

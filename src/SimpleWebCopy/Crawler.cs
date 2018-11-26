@@ -19,6 +19,7 @@ namespace SimpleWebCopy
     public class Crawler : IDisposable
     {
         private string userAgent;
+        private IEnumerable<string> extraLinks;
 
         private HttpClient httpClient;
         private CookieContainer cookieContainer;
@@ -45,13 +46,14 @@ namespace SimpleWebCopy
 
         public event EventHandler CrawlComplete;
 
-        public Crawler(string site, string output, int threads, string userAgent)
+        public Crawler(string site, string output, int threads, string userAgent, IEnumerable<string> links)
         {
             this.Site = UrlHelper.Standardize(site);
             this.Output = output;
             this.Threads = threads;
 
             this.userAgent = userAgent;
+            this.extraLinks = links;
 
             queue = new ConcurrentQueue<string>();
 
@@ -75,6 +77,9 @@ namespace SimpleWebCopy
             CrawlStarted.Trigger(this, new EventArgs());
 
             State.AddLink(Site, null, null);
+
+            foreach (string link in extraLinks)
+                State.AddLink(link, null, null);
 
             List<Task> tasks = new List<Task>();
             for (int i = 0; i < Threads; i++)
@@ -181,9 +186,9 @@ namespace SimpleWebCopy
                                     document = new HtmlDocument();
                                     document.LoadHtml(html);
 
-                                    FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "a", "href");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "link", "href");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "script", "src");
+                                    FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "a", "href");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "img", "src");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "source", "srcset");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "*", "data-src"); // semi-standard way to lazy-load?

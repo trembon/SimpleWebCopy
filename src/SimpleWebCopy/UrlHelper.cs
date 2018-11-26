@@ -17,6 +17,7 @@ namespace SimpleWebCopy
             ".aspx",
             ".asmx",
             ".ashx",
+            ".axd",
             ".cshtml",
             ".dhtml",
             ".dll",
@@ -44,12 +45,6 @@ namespace SimpleWebCopy
                 uri = new Uri(uri, $"{uri.LocalPath}/");
 
             return uri.ToString();
-        }
-
-        public static string Standardize(string baseUrl, string url)
-        {
-            string absoluteUrl = MakeAbsolute(baseUrl, url);
-            return Standardize(absoluteUrl);
         }
 
         public static string MakeAbsolute(string baseUrl, string url)

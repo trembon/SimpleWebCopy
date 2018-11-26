@@ -38,8 +38,8 @@ namespace SimpleWebCopy
 
         public string AddLink(string url, string source, string sourceElement)
         {
-            string id = UrlHelper.Standardize(baseUrl, url);
-            url = UrlHelper.MakeAbsolute(baseUrl, url);
+            url = UrlHelper.MakeAbsolute(source ?? baseUrl, url);
+            string id = UrlHelper.Standardize(url);
 
             SiteItem item = state.GetOrAdd(id, new SiteItem(id, baseUrl, url, source, sourceElement));
             ItemAdded.Trigger(this, new ItemAddedEventArgs(item.ID));

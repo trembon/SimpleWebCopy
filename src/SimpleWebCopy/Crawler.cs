@@ -74,7 +74,7 @@ namespace SimpleWebCopy
         {
             CrawlStarted.Trigger(this, new EventArgs());
 
-            State.AddLink(Site, "<argument>", null);
+            State.AddLink(Site, null, null);
 
             List<Task> tasks = new List<Task>();
             for (int i = 0; i < Threads; i++)

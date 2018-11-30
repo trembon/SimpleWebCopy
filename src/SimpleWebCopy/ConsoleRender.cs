@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace SimpleWebCopy
@@ -75,6 +76,8 @@ namespace SimpleWebCopy
         {
             Console.SetCursorPosition(18, statusRow);
             Console.Write($"{crawler.State.ItemProcessedCount}/{crawler.State.ItemCount}");
+
+            Console.SetCursorPosition(0, threadRows.Last().Value + 2);
         }
 
         private void UpdateThread(int thread, string item, string status)
@@ -92,9 +95,8 @@ namespace SimpleWebCopy
 
             Console.Write(item);
             Console.Write(new string(' ', Console.WindowWidth - Console.CursorLeft));
-
-            Console.SetCursorPosition(0, threadRows[thread] + 2);
-            Console.Write(new string(' ', Console.WindowWidth));
+            
+            Console.SetCursorPosition(0, threadRows.Last().Value + 2);
         }
     }
 }

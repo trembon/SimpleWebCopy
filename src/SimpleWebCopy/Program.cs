@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.CommandLineUtils;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,12 +26,13 @@ namespace SimpleWebCopy
             CommandOption userAgentOption = app.Option("-ua|--user-agent <user-agent>", "The user agent that will be sent in the header with requests. Default: SimpleWebCopy vX.X", CommandOptionType.SingleValue);
             CommandOption reportOption = app.Option("-r|--report <report>", "Where the report will be stored, containing the result of the copy. Default: <output>/_report.json", CommandOptionType.SingleValue);
             CommandOption linksOption = app.Option("-l|--link <links>", "Extra links to add to the crawler that might not be linked on the site. Default: null", CommandOptionType.MultipleValue);
+            CommandOption cookiesOption = app.Option("-c|--cookie <cookies>", "Cookies to be added for the crawler. Default: null", CommandOptionType.MultipleValue);
 
             var siteArgument = app.Argument("[website]", "The website to crawl and make an offline copy of");
 
             app.OnExecute(async () =>
             {
-                if(siteArgument.Value == null)
+                if (siteArgument.Value == null)
                 {
                     app.ShowHelp();
                     return 0;
@@ -43,7 +45,7 @@ namespace SimpleWebCopy
                 string outputFolder = "./output";
                 if (outputOption.HasValue())
                     outputFolder = outputOption.Value().Replace("\"", "").Replace("'", "");
-                
+
                 string userAgent = "SimpleWebCopy v1.0";
                 if (userAgentOption.HasValue())
                     userAgent = userAgentOption.Value();
@@ -56,7 +58,17 @@ namespace SimpleWebCopy
                 if (linksOption.HasValue())
                     links = linksOption.Values.ToArray();
 
-                crawler = new Crawler(siteArgument.Value, outputFolder, numberOfThreads, userAgent, links);
+                Dictionary<string, string> cookies = new Dictionary<string, string>();
+                if (cookiesOption.HasValue())
+                {
+                    foreach (string value in cookiesOption.Values)
+                    {
+                        string[] cookie = value.Split("=");
+                        cookies.Add(cookie[0], cookie.Length > 1 ? cookie[1] : "");
+                    }
+                }
+
+                crawler = new Crawler(siteArgument.Value, outputFolder, numberOfThreads, userAgent, links, cookies);
                 renderer = new ConsoleRender(crawler);
 
                 DateTime startTime = DateTime.Now;

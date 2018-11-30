@@ -46,7 +46,7 @@ namespace SimpleWebCopy
 
         public event EventHandler CrawlComplete;
 
-        public Crawler(string site, string output, int threads, string userAgent, IEnumerable<string> links)
+        public Crawler(string site, string output, int threads, string userAgent, IEnumerable<string> links, Dictionary<string, string> cookies)
         {
             this.Site = UrlHelper.Standardize(site);
             this.Output = output;
@@ -61,6 +61,13 @@ namespace SimpleWebCopy
             State.ItemAdded += State_ItemAdded;
 
             cookieContainer = new CookieContainer();
+            if (cookies != null)
+            {
+                Uri domain = new Uri(this.Site);
+                foreach (string name in cookies.Keys)
+                    cookieContainer.Add(new Cookie(name, cookies[name], "/", domain.DnsSafeHost));
+            }
+
             httpClientHandler = new HttpClientHandler { CookieContainer = cookieContainer, AllowAutoRedirect = true };
             httpClient = new HttpClient(httpClientHandler);
 
@@ -302,6 +309,10 @@ namespace SimpleWebCopy
                 if (!string.IsNullOrWhiteSpace(href))
                 {
                     href = HttpUtility.HtmlDecode(href);
+
+                    // if the links is only data behind a hastag, dont process it
+                    if (href.StartsWith("#"))
+                        continue;
 
                     string id = State.AddLink(href, sourceUrl, node.OriginalName);
                     string localUrl = State.GetLocalLink(id);

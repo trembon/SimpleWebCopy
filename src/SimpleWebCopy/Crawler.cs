@@ -318,7 +318,7 @@ namespace SimpleWebCopy
                     if (extraAttribute != null)
                         sourceElement += $".{node.GetAttributeValue(extraAttribute, "")}";
 
-                    string id = State.AddLink(href, sourceUrl, node.OriginalName);
+                    string id = State.AddLink(href, sourceUrl, sourceElement);
                     string localUrl = State.GetLocalLink(id);
 
                     string relativeUrl = UrlHelper.CreateRelativeURL(itemLocalUrl, localUrl);

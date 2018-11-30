@@ -193,7 +193,7 @@ namespace SimpleWebCopy
                                     document = new HtmlDocument();
                                     document.LoadHtml(html);
 
-                                    FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "link", "href");
+                                    FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "link", "href", "rel");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "script", "src");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "a", "href");
                                     FindAndReplaceURLs(document, itemUrl, itemLocalUrl, "img", "src");
@@ -297,7 +297,7 @@ namespace SimpleWebCopy
             catch { }
         }
 
-        private void FindAndReplaceURLs(HtmlDocument document, string sourceUrl, string itemLocalUrl, string element, string attribute)
+        private void FindAndReplaceURLs(HtmlDocument document, string sourceUrl, string itemLocalUrl, string element, string attribute, string extraAttribute = null)
         {
             HtmlNodeCollection elements = document.DocumentNode.SelectNodes($"//{element}[@{attribute}]");
             if (elements == null || elements.Count == 0)
@@ -313,6 +313,10 @@ namespace SimpleWebCopy
                     // if the links is only data behind a hastag, dont process it
                     if (href.StartsWith("#"))
                         continue;
+
+                    string sourceElement = node.OriginalName;
+                    if (extraAttribute != null)
+                        sourceElement += $".{node.GetAttributeValue(extraAttribute, "")}";
 
                     string id = State.AddLink(href, sourceUrl, node.OriginalName);
                     string localUrl = State.GetLocalLink(id);

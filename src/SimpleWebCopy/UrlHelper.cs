@@ -80,7 +80,7 @@ namespace SimpleWebCopy
                 string fileType = ".html";
                 switch (sourceElement)
                 {
-                    case "link":
+                    case "link.stylesheet":
                         fileType = ".css";
                         break;
 
@@ -105,7 +105,7 @@ namespace SimpleWebCopy
                 string fileType = ".html";
                 switch (sourceElement)
                 {
-                    case "link":
+                    case "link.stylesheet":
                         fileType = ".css";
                         break;
 
